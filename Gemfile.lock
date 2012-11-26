@@ -1,0 +1,38 @@
+PATH
+  remote: .
+  specs:
+    xp5k (0.0.1)
+      json (~> 1.5.1)
+      restfully (~> 0.6)
+      term-ansicolor (>= 1.0.7)
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    addressable (2.3.2)
+    backports (2.6.5)
+    json (1.5.4)
+    mime-types (1.19)
+    rack (1.4.1)
+    rack-cache (1.2)
+      rack (>= 0.4)
+    rest-client (1.6.7)
+      mime-types (>= 1.16)
+    rest-client-components (1.2.0)
+      rack (>= 1.0.1)
+      rest-client (>= 1.6.0, < 1.7.0)
+    restfully (0.8.8)
+      addressable
+      backports
+      json (~> 1.5)
+      rack-cache
+      rest-client (~> 1.6)
+      rest-client-components
+    term-ansicolor (1.0.7)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler (>= 1.0.0)
+  xp5k!
