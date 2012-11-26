@@ -5,14 +5,14 @@ module XP5K
 
     @@config[:debug] = false
     @@config[:user] = ENV['USER']
-    @@config[:public_key] = File.join(ENV['HOME'], ".ssh", "id_rsa.pub")
+    @@config[:public_key] = File.join(ENV['HOME'], '.ssh', 'id_rsa.pub')
 
     @@config[:loaded] = false
 
     # Load the experiment configuration file
     def self.load
-      if File.exist?(File.expand_path(File.join(XP5K::ROOT_PATH, "xp.conf")))
-        file_path = File.expand_path(File.join(XP5K::ROOT_PATH, "xp.conf"))
+      if File.exist?(File.expand_path(File.join(Dir.pwd, 'xp.conf')))
+        file_path = File.expand_path(File.join(Dir.pwd, 'xp.conf'))
         self.instance_eval(IO.read(file_path),file_path, 1)
       end
       @@config[:loaded] = true
