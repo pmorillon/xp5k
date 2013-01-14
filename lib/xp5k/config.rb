@@ -14,8 +14,8 @@ module XP5K
       if File.exist?(File.expand_path(File.join(Dir.pwd, 'xp.conf')))
         file_path = File.expand_path(File.join(Dir.pwd, 'xp.conf'))
         self.instance_eval(IO.read(file_path),file_path, 1)
+        @@config[:loaded] = true
       end
-      @@config[:loaded] = true
     end # def:: self.load
 
     def self.loaded?
