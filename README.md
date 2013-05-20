@@ -1,26 +1,32 @@
 ## Capistrano sample
 
-    require 'xp5k'
+    require "rubygems"
+    require "xp5k"
+
+    # connection to the gateway parameters
+    set :g5k_user, "msimonin"
+    set :gateway, "#{g5k_user}@access.grid5000.fr"
+    ssh_options[:keys]= [File.join(ENV["HOME"], ".ssh_cap", "id_rsa_cap")]
     
-    XP5K::Config.load
     
-    @myxp = XP5K::XP.new(:logger => logger)
+    @myxp = XP5K::XPM.new()
     
     @myxp.define_job({
-      :resources  => "nodes=1,walltime=1",
-      :site       => XP5K::Config[:site] || 'rennes',
+      :resources  => ["nodes=1,walltime=1", "nodes=2,walltime=1"],
+      :sites      => %w( toulouse lyon) ,
       :types      => ["deploy"],
       :name       => "job1",
-      :command    => "sleep 86400"
+      :command    => "sleep 3600"
     })
     
     @myxp.define_job({
-      :resources  => "nodes=1,walltime=1",
-      :site       => XP5K::Config[:site] || 'rennes',
+      :resources  => ["nodes=1,walltime=1"],
+      :sites      => %w(toulouse lille reims),
       :types      => ["deploy"],
       :name       => "job2",
-      :command    => "sleep 86400"
+      :command    => "sleep 3600"
     })
+
     
     @myxp.define_deployment({
       :site           => XP5K::Config[:site] || 'rennes',
@@ -30,11 +36,11 @@
     })
     
     role :job1 do
-      @myxp.job_with_name('job1')['assigned_nodes'].first
+      @myxp.get_assigned_nodes("job1")
     end
     
     role :job2 do
-      @myxp.job_with_name('job2')['assigned_nodes'].first
+      @myxp.get_assigned_nodes("job2")
     end
     
     desc 'Submit jobs'
@@ -63,11 +69,3 @@
       set :user, 'root'
       run 'date'
     end
-
-
-## _xp.conf_ sample file
-
-    site        'rennes'
-    public_key  '/Users/pmorillon/.ssh/id_rsa_g5k.pub'
-
-
