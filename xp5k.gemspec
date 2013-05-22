@@ -6,9 +6,9 @@ Gem::Specification.new do |s|
   s.name        = 'xp5k'
   s.version     = XP5K::VERSION
   s.platform    = Gem::Platform::RUBY
-  s.authors     = ['Pascal Morillon']
-  s.email       = ['pascal.morillon@irisa.fr']
-  s.homepage    = 'https://github.com/pmorillon/xp5k'
+  s.authors     = ['Pascal Morillon', 'Matthieu Simonin']
+  s.email       = ['pascal.morillon@irisa.fr', 'matthieu.simonin@inria.fr']
+  s.homepage    = 'https://github.com/msimonin/xp5k'
   s.summary     = %q{A small Grid'5000 helper to submit jobs and deploy environments via REST API}
   s.description = %q{A small Grid'5000 helper to submit jobs and deploy environments via REST API}
 

@@ -39,6 +39,7 @@ module XP5K
     end
 
     def define_deployment(deployment_hash)
+      @logger.info "XP5K::XPM define a new deployment"
       @xpsites.each do |site, xpsite|
         xpsite.define_deployment(deployment_hash.clone)
       end

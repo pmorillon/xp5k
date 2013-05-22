@@ -41,8 +41,9 @@ module XP5K
     end
 
     def define_deployment(deployment_hash)
+      logger.info "[#{@site}] define a new deployment"
       deployment_hash[:jobs].each do |jobname|
-        job = self.job_with_name(jobname)
+        job = self.look_for_job(jobname)
         if (!job.nil?)
           self.todeploy << deployment_hash
           break
@@ -146,6 +147,13 @@ module XP5K
       end
       logger.info "[#{@site} #{jobs.length} submitted]"
       return jobs
+    end
+    def look_for_job(name)
+      job = job_with_name(name)
+      if job.nil?
+        job = self.jobs2submit.select { |x| x[:name] == name }.first
+      end
+      return job
     end
 
     def job_with_name(name)
