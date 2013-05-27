@@ -20,10 +20,10 @@ module XP5K
       @starttime = Time.now
       @logger = options[:logger] || Logger.new('xp.log')
       @logger.level = options[:logger_level] || Logger::INFO
-      @site = options[:site]
-      @cache = ".xp_cache."+@site
 
       XP5K::Config.load unless XP5K::Config.loaded?
+      @site = options[:site] || XP5K::Config[:site]
+      @cache = ".xp_cache."+@site
 
       @connection = options[:connection] || Restfully::Session.new(
         :configuration_file => "~/.restfully/api.grid5000.fr.yml",
@@ -134,6 +134,7 @@ module XP5K
       self.jobs2submit.each do |job2submit|
         job = self.job_with_name(job2submit[:name])
         if job.nil?
+          puts job2submit[:site].to_sym
           job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
           self.jobs << job
           jobs << job 
