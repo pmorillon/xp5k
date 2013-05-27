@@ -82,8 +82,8 @@ module XP5K
       puts green("All deployment finished")
     end
 
-    def get_assigned_nodes(jobname,kavlan=-1)
-      if (kavlan != -1)
+    def get_assigned_nodes(jobname,kavlan="-1")
+      if (kavlan != "-1")
         nodes = []
         #translate nodes names ...
         jobs[jobname]["assigned_nodes"].each do |node|
