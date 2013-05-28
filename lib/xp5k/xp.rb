@@ -134,7 +134,6 @@ module XP5K
       self.jobs2submit.each do |job2submit|
         job = self.job_with_name(job2submit[:name])
         if job.nil?
-          puts job2submit[:site].to_sym
           job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
           self.jobs << job
           jobs << job 
