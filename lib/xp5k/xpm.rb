@@ -93,7 +93,11 @@ module XP5K
         end
         nodes
       else
-        jobs[jobname]["assigned_nodes"]
+        if jobs[jobname].nil?
+          []
+        else
+          jobs[jobname]["assigned_nodes"]
+        end
       end
     end
 
