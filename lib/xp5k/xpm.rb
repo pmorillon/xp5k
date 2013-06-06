@@ -184,5 +184,11 @@ module XP5K
         @jobs[job["name"]]["uid"] = job["uid"]
       end
     end
+
+    def status()
+      @xpsites.each do |site, xpsite|
+        xpsite.status()
+      end 
+    end
   end
 end
