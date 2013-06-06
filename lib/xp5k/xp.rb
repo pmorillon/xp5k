@@ -163,6 +163,7 @@ module XP5K
     def status
       self.jobs.each do |job|
         logger.info "[#{@site}] Job #{job["name"]} ##{job["uid"]} status : #{job["state"]}"
+        puts "[#{@site}] Job #{job["name"]} ##{job["uid"]} status : #{job["state"]}"
       end
     end
 
