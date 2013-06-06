@@ -169,6 +169,12 @@ module XP5K
       puts green(".")
     end
 
+    def status()
+      @xpsites.each do |site, xpsite|
+        xpsite.status
+      end 
+    end
+
     private
 
     def logger
@@ -185,10 +191,5 @@ module XP5K
       end
     end
 
-    def status()
-      @xpsites.each do |site, xpsite|
-        xpsite.status()
-      end 
-    end
   end
 end
