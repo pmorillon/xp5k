@@ -9,7 +9,7 @@ module XP5K
   class XP
     include Term::ANSIColor
 
-    attr_accessor :jobs, :jobs2submit, :deployments, :todeploy, :connection
+    attr_accessor :jobs, :jobs2submit, :deployments, :todeploy, :connection, :links, :deployed_nodes
     attr_reader :starttime
 
     def initialize(options = {})
@@ -17,6 +17,8 @@ module XP5K
       @jobs2submit = []
       @deployments = []
       @todeploy = []
+      @links = {}
+      @deployed_nodes = {}
       @starttime = Time.now
       @logger = options[:logger] || Logger.new('xp.log')
       @logger.level = options[:logger_level] || Logger::INFO
@@ -53,6 +55,7 @@ module XP5K
     
     def deploy(poll=true)
       deployments = []
+      self.links = {}
       self.todeploy.each do |x|
         x[:nodes] ||= []
         # Get assigned resources to deploy
@@ -66,9 +69,13 @@ module XP5K
         end
         logger.info "[#{@site}] deployement on nodes " + x[:nodes]*","
         deployment = @connection.root.sites[@site.to_sym].deployments.submit(x)
-        self.deployments << { :uid => deployment["uid"], :site => deployment["site_uid"] }
+        self.deployments << deployment
+        #self.deployments << { :uid => deployment["uid"], :site => deployment["site_uid"], :jobs => x[:jobs] }
+        # x[:jobs] can contain jobs not related to this sites 
+        self.links[deployment["uid"]] = x[:jobs] & self.jobs.collect{|x| x["name"]}
         update_cache
         logger.info "[#{@site}] Waiting for the deployment ##{deployment['uid']} to be terminated..."
+
         if poll
           poll_deployment(deployment)
         end
@@ -80,18 +87,24 @@ module XP5K
     end
     
     def deployments_terminated()
+      self.deployed_nodes = {}
       self.deployments.each do |deployment|
         # maybe we should swirch to restfully
-        depl = @connection.root.sites[@site.to_sym].deployments[deployment[:uid].to_sym]
-        terminated = depl["status"]=="terminated"
-        if (not terminated)
-          logger.info "[#{@site}] Deployment ##{deployment[:uid]} not terminated"
+        if (deployment.reload["status"]!="terminated")
+          logger.info "[#{@site}] Deployment ##{deployment["uid"]} not terminated"
           return false
         else
-          logger.info "[#{@site}] Deployment ##{deployment[:uid]} terminated"
-          deployment["result"]=depl["result"]
+          logger.info "[#{@site}] Deployment ##{deployment["uid"]} terminated"
+          #update links with deployed_nodes
+          self.links[deployment["uid"]].each  do |job|
+            self.deployed_nodes[job] = intersect_nodes(
+              job_with_name(job), 
+              deployment["result"]
+            )
+          end
         end
       end
+      update_cache
       logger.info "[#{@site}] All deployments terminated"
       return true
     end
@@ -120,8 +133,21 @@ module XP5K
         unless uid.nil?
           job = @connection.root.sites[job_hash[:site].to_sym].jobs["#{uid}".to_sym]
           unless (job.nil? or job["state"] != "running")
+            logger.info "[#{@site}] Job #{job["name"]} is running"
             j = job.reload
             self.jobs << j
+            # last deployed_nodes seen by xp5k 
+            duid = datas["links"].select{|k,v| v.include?(j["name"])}.keys.first
+            unless duid.nil?
+              # we found a development linked to this job
+              # refresh the dev
+              dev =  @connection.root.sites[job_hash[:site].to_sym].deployments["#{duid}".to_sym]
+              unless (dev.nil? or dev["status"] != "terminated")
+                logger.info "[#{@site}] Reloading the previous linked deployment ..."
+                d = dev.reload
+                self.deployed_nodes[j["name"]] = intersect_nodes(j, d["result"])
+              end
+            end
           end
         end
       else
@@ -148,6 +174,7 @@ module XP5K
       logger.info "[#{@site} #{jobs.length} submitted]"
       return jobs
     end
+
     def look_for_job(name)
       job = job_with_name(name)
       if job.nil?
@@ -158,6 +185,19 @@ module XP5K
 
     def job_with_name(name)
       self.jobs.select { |x| x["name"] == name }.first
+    end
+
+    def get_deployed_nodes(jobname)
+      if deployed_nodes.has_key?(jobname)
+        deployed_nodes[jobname]
+      end
+    end
+
+    def get_assigned_nodes(jobname)
+      job = job_with_name(jobname)
+      unless job.nil? 
+        job["assigned_nodes"]    
+      end
     end
 
     def status
@@ -188,8 +228,10 @@ module XP5K
 
     def update_cache
       cache = { :jobs => self.jobs.collect { |x| x.properties },
-                :deployments => self.deployments
-      }
+                :deployments => self.deployments.collect{ |x| x.properties},
+                :links => self.links,
+                :deployed_nodes => self.deployed_nodes
+                 }
       open(@cache, "w") do |f|
         f.puts cache.to_json
       end
@@ -211,6 +253,11 @@ module XP5K
       end
       print(" [#{green("OK")}]\n")
       update_cache
+    end
+
+    def intersect_nodes(job, depl_result)
+      nodes_deployed = depl_result.select{|k,v| v["state"]=='OK'}.keys
+      job["assigned_nodes"] & nodes_deployed
     end
   end
 end
