@@ -7,7 +7,7 @@
     @myxp = XP5K::XP.new(:logger => logger)
     
     @myxp.define_job({
-      :resources  => "nodes=1,walltime=1",
+      :resources  => "nodes=2,walltime=1",
       :site       => XP5K::Config[:site] || 'rennes',
       :types      => ["deploy"],
       :name       => "job1",
@@ -15,17 +15,22 @@
     })
     
     @myxp.define_job({
-      :resources  => "nodes=1,walltime=1",
+      :resources  => "nodes=6,walltime=1",
       :site       => XP5K::Config[:site] || 'rennes',
       :types      => ["deploy"],
       :name       => "job2",
+	  :roles 	  => [
+	  	XP5K::Role.new({ :name => 'server', :size => 1 }),
+		XP5K::Role.new({ :name => 'nodes', :size => 5 })
+	  ]
       :command    => "sleep 86400"
     })
     
     @myxp.define_deployment({
       :site           => XP5K::Config[:site] || 'rennes',
       :environment    => "squeeze-x64-nfs",
-      :jobs           => %w{ job1 job2 },
+      :jobs           => %w{ job1 },
+	  :roles          => %w{ server }
       :key            => File.read(XP5K::Config[:public_key])
     })
     
@@ -36,7 +41,11 @@
     role :job2 do
       @myxp.job_with_name('job2')['assigned_nodes'].first
     end
-    
+	
+	role :nodes do
+	  @myxp.role_with_name('nodes').servers
+	end
+	  
     desc 'Submit jobs'
     task :submit do
       @myxp.submit
