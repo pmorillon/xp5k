@@ -8,22 +8,23 @@ module XP5K
 
     include Term::ANSIColor
 
-    attr_accessor :jobs, :jobs2submit, :deployments, :todeploy, :connection
+    attr_accessor :jobs, :jobs2submit, :deployments, :todeploy, :connection, :roles
     attr_reader :starttime
 
     def initialize(options = {})
-      @jobs = []
+      @jobs        = []
       @jobs2submit = []
       @deployments = []
-      @todeploy = []
-      @starttime = Time.now
-      @logger = options[:logger] || Logger.new(STDOUT)
+      @todeploy    = []
+      @roles       = []
+      @starttime   = Time.now
+      @logger      = options[:logger] || Logger.new(STDOUT)
       XP5K::Config.load unless XP5K::Config.loaded?
 
       @connection = Restfully::Session.new(
         :configuration_file => "~/.restfully/api.grid5000.fr.yml",
         :logger => begin
-          tmplogger = ::Logger.new(STDERR)
+          tmplogger       = ::Logger.new(STDERR)
           tmplogger.level = ::Logger::WARN
           tmplogger
         end
@@ -35,6 +36,8 @@ module XP5K
     end
 
     def define_deployment(deployment_hash)
+      deployment_hash[:jobs] ||= []
+      deployment_hash[:roles] ||= []
       self.todeploy << deployment_hash
     end
 
@@ -46,16 +49,19 @@ module XP5K
           job = self.job_with_name(jobname)
           x[:nodes] += job["assigned_nodes"]
         end
+        x[:roles].each do |rolename|
+          x[:nodes] += role_with_name(rolename).servers
+        end
         deployment = @connection.root.sites[x[:site].to_sym].deployments.submit(x)
         self.deployments << { :uid => deployment["uid"], :site => deployment["site_uid"] }
-        update_cache
+        #update_cache
         puts "Waiting for the deployment ##{deployment['uid']} to be terminated..."
         while deployment.reload['status'] == 'processing'
           print(".")
           sleep 10
         end
         print(" [#{green("OK")}]\n")
-        update_cache
+        #update_cache
       end
     end
 
@@ -68,9 +74,10 @@ module XP5K
         uid = datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first["uid"]
         unless uid.nil?
           job = @connection.root.sites[job_hash[:site].to_sym].jobs["#{uid}".to_sym]
-          unless (job.nil? or job["state"] != "running")
+          if (not job.nil? or job["state"] == "running")
             j = job.reload
             self.jobs << j
+            create_roles(j, job_hash) unless job_hash[:roles].nil?
           end
         end
       end
@@ -81,21 +88,45 @@ module XP5K
         job = self.job_with_name(job2submit[:name])
         if job.nil?
           job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
-          self.jobs << job
+          self.jobs << { :uid => job.properties['uid'], :name => job.properties['name'] }
           update_cache
           logger.info "Waiting for the job #{job["name"]} ##{job['uid']} to be running at #{job2submit[:site]}..."
           while job.reload["state"] != "running"
             print(".")
             sleep 3
           end
+          create_roles(job, job2submit) unless job2submit[:roles].nil?
           print(" [#{green("OK")}]\n")
-          update_cache
+        else
+          logger.info "Job #{job["name"]} already submitted ##{job["uid"]}"
         end
+      end
+    end
+    
+    def create_roles(job, job_definition)
+      count_needed_nodes = 0
+      job_definition[:roles].each { |role| count_needed_nodes += role.size }
+      if job['assigned_nodes'].length < count_needed_nodes
+        self.clean
+        raise "Job ##{job['uid']} require more nodes for required roles"
+      end
+      available_nodes = job['assigned_nodes'].sort
+      job_definition[:roles].each do |role|
+        role.servers = available_nodes[0..(role.size - 1)]
+        available_nodes -= role.servers
+        role.jobid = job['uid']
+        self.roles << role
       end
     end
 
     def job_with_name(name)
       self.jobs.select { |x| x["name"] == name }.first
+    end
+    
+    def role_with_name(name)
+      role = self.roles.select { |x| x.name == name}.first
+      p role
+      role
     end
 
     def status
@@ -125,9 +156,7 @@ module XP5K
     end
 
     def update_cache
-      cache = { :jobs => self.jobs.collect { |x| x.properties },
-                :deployments => self.deployments
-      }
+      cache = { :jobs => self.jobs.map { |x| { :uid => x[:uid], :name => x[:name] } } }
       open(".xp_cache", "w") do |f|
         f.puts cache.to_json
       end
