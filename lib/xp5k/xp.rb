@@ -2,6 +2,7 @@ require "json"
 require "restfully"
 require "fileutils"
 require "term/ansicolor"
+require "pp"
 
 module XP5K
   class XP
@@ -53,16 +54,19 @@ module XP5K
           x[:nodes] += role_with_name(rolename).servers
         end
         deployment = @connection.root.sites[x[:site].to_sym].deployments.submit(x)
-        self.deployments << { :uid => deployment["uid"], :site => deployment["site_uid"] }
-        #update_cache
-        puts "Waiting for the deployment ##{deployment['uid']} to be terminated..."
-        while deployment.reload['status'] == 'processing'
-          print(".")
-          sleep 10
-        end
-        print(" [#{green("OK")}]\n")
-        #update_cache
+        self.deployments << { :uid => deployment["uid"], :site => deployment["site_uid"], :status => deployment["status"]}
       end
+      print "Waiting for all the deployments to be terminated..."
+      finished = self.deployments.reduce(true){ |acc, d| acc && d[:status]!='processing'}
+      while (!finished)
+        sleep 10
+        print "."
+        self.deployments.each do |deployment|
+          deployment[:status] = @connection.root.sites[deployment[:site].to_sym].deployments[deployment[:uid].to_sym].reload["status"]
+        end
+        finished = self.deployments.reduce(true){ |acc, d| acc && d[:status]!='processing'}
+      end
+      print(" [#{green("OK")}]\n")
     end
 
     def define_job(job_hash)
