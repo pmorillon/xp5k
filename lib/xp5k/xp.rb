@@ -102,7 +102,7 @@ module XP5K
         end
       end
     end
-    
+
     def create_roles(job, job_definition)
       count_needed_nodes = 0
       job_definition[:roles].each { |role| count_needed_nodes += role.size }
@@ -122,11 +122,9 @@ module XP5K
     def job_with_name(name)
       self.jobs.select { |x| x["name"] == name }.first
     end
-    
+
     def role_with_name(name)
-      role = self.roles.select { |x| x.name == name}.first
-      p role
-      role
+      self.roles.select { |x| x.name == name}.first
     end
 
     def status

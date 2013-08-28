@@ -18,7 +18,6 @@ class XP5K::Role
     %w{ desc servers }.each do |param|
       instance_variable_set("@#{param}", options[param.to_sym])
     end
-    self.desc ||= options[:desc]
   end
 
 end
