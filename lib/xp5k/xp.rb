@@ -2,7 +2,6 @@ require "json"
 require "restfully"
 require "fileutils"
 require "term/ansicolor"
-require "pp"
 
 module XP5K
   class XP
@@ -56,7 +55,7 @@ module XP5K
         deployment = @connection.root.sites[x[:site].to_sym].deployments.submit(x)
         self.deployments << { :uid => deployment["uid"], :site => deployment["site_uid"], :status => deployment["status"]}
       end
-      print "Waiting for all the deployments to be terminated..."
+      logger.info "Waiting for all the deployments to be terminated..."
       finished = self.deployments.reduce(true){ |acc, d| acc && d[:status]!='processing'}
       while (!finished)
         sleep 10
