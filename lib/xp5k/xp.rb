@@ -52,7 +52,11 @@ module XP5K
         x[:roles].each do |rolename|
           x[:nodes] += role_with_name(rolename).servers
         end
-        deployment = @connection.root.sites[x[:site].to_sym].deployments.submit(x)
+        site = x[:site]
+        x.delete(:site)
+        x.delete(:roles)
+        x.delete(:jobs)
+        deployment = @connection.root.sites[site.to_sym].deployments.submit(x)
         self.deployments << { :uid => deployment["uid"], :site => deployment["site_uid"], :status => deployment["status"]}
       end
       logger.info "Waiting for all the deployments to be terminated..."
