@@ -94,7 +94,7 @@ module XP5K
           end
         end
         # reload last deployed nodes
-        self.deployed_nodes = datas["deployed_nodes"] 
+        self.deployed_nodes = datas["deployed_nodes"]
       end
 
     end
@@ -111,7 +111,7 @@ module XP5K
             print(".")
             sleep 3
           end
-          self.jobs << job 
+          self.jobs << job
           create_roles(job, job2submit) unless job2submit[:roles].nil?
           print(" [#{green("OK")}]\n")
         else
@@ -175,17 +175,17 @@ module XP5K
     def logger
       @logger
     end
-    
+
     def update_links_deployments (duid, todeploy)
       unless todeploy[:jobs].nil?
         todeploy[:jobs].each do |job|
-          @links_deployments["jobs"][job] = duid  
+          @links_deployments["jobs"][job] = duid
         end
       end
 
       unless todeploy[:roles].nil?
         todeploy[:roles].each do |role|
-          @links_deployments["roles"][role] = duid  
+          @links_deployments["roles"][role] = duid
         end
       end
     end
@@ -204,7 +204,7 @@ module XP5K
 
       end
     end
-    
+
     def intersect_nodes_job (job, deployment)
       nodes_deployed = deployment["result"].select{ |k,v| v["state"]=='OK'}.keys
       job["assigned_nodes"] & nodes_deployed
@@ -214,9 +214,9 @@ module XP5K
       nodes_deployed = deployment["result"].select{ |k,v| v["state"]=='OK'}.keys
       role.servers & nodes_deployed
     end
-    
+
     def update_cache
-      cache = { 
+      cache = {
         :jobs               => self.jobs.collect { |x| x.properties },
         :roles              => self.roles.map{ |x| { :name => x.name, :size => x.size, :servers => x.servers }},
         :deployed_nodes     => self.deployed_nodes,
