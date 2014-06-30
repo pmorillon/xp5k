@@ -104,19 +104,35 @@ module XP5K
         job = self.job_with_name(job2submit[:name])
         if job.nil?
           job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
-          #self.jobs << { :uid => job.properties['uid'], :name => job.properties['name'] }
           update_cache
-          logger.info "Waiting for the job #{job["name"]} ##{job['uid']} to be running at #{job2submit[:site]}..."
-          while job.reload["state"] != "running"
-            print(".")
-            sleep 3
-          end
+          logger.info "Job \"#{job['name']}\" submitted with id ##{job['uid']} at #{job2submit[:site]}"
           self.jobs << job
-          create_roles(job, job2submit) unless job2submit[:roles].nil?
-          print(" [#{green("OK")}]\n")
         else
-          logger.info "Job #{job["name"]} already submitted ##{job["uid"]}"
+          logger.info "Job \"#{job["name"]}\" already submitted ##{job["uid"]}"
         end
+      end
+      update_cache()
+    end
+
+    def wait_for_jobs
+      logger.info "Waiting for running state"
+      ready = false
+      jobs_status = []
+      until ready
+        self.jobs.each.with_index do |job, id|
+          jobs_status[id] = job.reload["state"]
+          case jobs_status[id]
+          when "running"
+            create_roles(job, jobs2submit[id]) unless jobs2submit[id][:roles].nil?
+            logger.info "Job #{job['uid']} is running"
+          when /terminated|error/
+            logger.info "Job #{job['uid']} is terminated"
+          else
+            logger.info "Job #{job['uid']} will be scheduled at #{Time.at(job['scheduled_at'].to_i).to_datetime}"
+          end
+        end
+        ready = true if jobs_status.uniq == ["running"]
+        sleep 3
       end
       update_cache()
     end
@@ -133,6 +149,7 @@ module XP5K
         role.servers = available_nodes[0..(role.size - 1)]
         available_nodes -= role.servers
         role.jobid = job['uid']
+        next if not self.roles.select { |x| x.name == role.name }.empty?
         self.roles << role
       end
     end
@@ -156,16 +173,14 @@ module XP5K
 
     def status
       self.jobs.each do |job|
-        logger.info "Job #{job["name"]} ##{job["uid"]} status : #{job["state"]}"
+        logger.info "Job \"#{job["name"]}\" ##{job["uid"]} status : #{job["state"]}"
       end
     end
 
     def clean
       self.jobs.each do |job|
-        if job.reload["state"] == "running"
-          job.delete
-          logger.info "Job ##{job["uid"]} deleted !"
-        end
+        job.delete if (job['state'] =~ /running|waiting/)
+        logger.info "Job ##{job["uid"]} deleted !"
       end
       FileUtils.rm(".xp_cache")
     end
