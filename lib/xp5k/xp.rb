@@ -61,7 +61,7 @@ module XP5K
         end
         # initially all nodes have to be deployed
         x[:nodes] = x[:assigned_nodes]
-        # set goal 
+        # set goal
         x[:goal] = set_goal(x[:goal], x[:assigned_nodes].length)
         # set retries
         x[:retry] ||= false
@@ -70,7 +70,7 @@ module XP5K
       internal_deploy(@retries)
       print_deploy_summary
     end
-    
+
 
     def define_job(job_hash)
       self.jobs2submit << job_hash
@@ -79,7 +79,7 @@ module XP5K
         datas = JSON.parse(File.read(".xp_cache"))
         uid = datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first["uid"]
         unless uid.nil?
-          job = @connection.root.sites[job_hash[:site].to_sym].jobs["#{uid}".to_sym]
+          job = @connection.root.sites[job_hash[:site].to_sym].jobs(:query => { :user => @connection.config.options[:username] })["#{uid}".to_sym]
           if (not job.nil? or job["state"] == "running")
             j = job.reload
             self.jobs << j
@@ -87,7 +87,7 @@ module XP5K
           end
         end
         # reload last deployed nodes
-        self.deployed_nodes = datas["deployed_nodes"] 
+        self.deployed_nodes = datas["deployed_nodes"]
       end
 
     end
@@ -97,19 +97,35 @@ module XP5K
         job = self.job_with_name(job2submit[:name])
         if job.nil?
           job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
-          #self.jobs << { :uid => job.properties['uid'], :name => job.properties['name'] }
           update_cache
-          logger.info "Waiting for the job #{job["name"]} ##{job['uid']} to be running at #{job2submit[:site]}..."
-          while job.reload["state"] != "running"
-            print(".")
-            sleep 3
-          end
-          self.jobs << job 
-          create_roles(job, job2submit) unless job2submit[:roles].nil?
-          print(" [#{green("OK")}]\n")
+          logger.info "Job \"#{job['name']}\" submitted with id ##{job['uid']} at #{job2submit[:site]}"
+          self.jobs << job
         else
-          logger.info "Job #{job["name"]} already submitted ##{job["uid"]}"
+          logger.info "Job \"#{job["name"]}\" already submitted ##{job["uid"]}"
         end
+      end
+      update_cache()
+    end
+
+    def wait_for_jobs
+      logger.info "Waiting for running state"
+      ready = false
+      jobs_status = []
+      until ready
+        self.jobs.each.with_index do |job, id|
+          jobs_status[id] = job.reload["state"]
+          case jobs_status[id]
+          when "running"
+            create_roles(job, jobs2submit[id]) unless jobs2submit[id][:roles].nil?
+            logger.info "Job #{job['uid']} is running"
+          when /terminated|error/
+            logger.info "Job #{job['uid']} is terminated"
+          else
+            logger.info "Job #{job['uid']} will be scheduled at #{Time.at(job['scheduled_at'].to_i).to_datetime}"
+          end
+        end
+        ready = true if jobs_status.uniq == ["running"]
+        sleep 3
       end
       update_cache()
     end
@@ -126,6 +142,7 @@ module XP5K
         role.servers = available_nodes[0..(role.size - 1)]
         available_nodes -= role.servers
         role.jobid = job['uid']
+        next if not self.roles.select { |x| x.name == role.name }.empty?
         self.roles << role
       end
     end
@@ -149,16 +166,14 @@ module XP5K
 
     def status
       self.jobs.each do |job|
-        logger.info "Job #{job["name"]} ##{job["uid"]} status : #{job["state"]}"
+        logger.info "Job \"#{job["name"]}\" ##{job["uid"]} status : #{job["state"]}"
       end
     end
 
     def clean
       self.jobs.each do |job|
-        if job.reload["state"] == "running"
-          job.delete
-          logger.info "Job ##{job["uid"]} deleted !"
-        end
+        job.delete if (job['state'] =~ /running|waiting/)
+        logger.info "Job ##{job["uid"]} deleted !"
       end
       FileUtils.rm(".xp_cache")
     end
@@ -168,19 +183,19 @@ module XP5K
     def logger
       @logger
     end
-    
+
     def update_links_deployments (duid, todeploy)
       unless todeploy[:jobs].nil?
         todeploy[:jobs].each do |job|
-          @links_deployments["jobs"][job] ||= []  
-          @links_deployments["jobs"][job] << duid  
+          @links_deployments["jobs"][job] ||= []
+          @links_deployments["jobs"][job] << duid
         end
       end
 
       unless todeploy[:roles].nil?
         todeploy[:roles].each do |role|
-          @links_deployments["roles"][role] ||= []  
-          @links_deployments["roles"][role] << duid  
+          @links_deployments["roles"][role] ||= []
+          @links_deployments["roles"][role] << duid
         end
       end
     end
@@ -189,7 +204,7 @@ module XP5K
       self.links_deployments["jobs"].each do |jobname,v|
         job = job_with_name(jobname)
         deployed_nodes["jobs"][jobname]=[]
-        v.each do |duid| 
+        v.each do |duid|
           deployment = self.deployments.select{ |d| d["uid"] == duid}.first
           deployed_nodes["jobs"][jobname] += intersect_nodes_job(job, deployment)
         end
@@ -198,14 +213,14 @@ module XP5K
       self.links_deployments["roles"].each do |rolename,v|
         role = role_with_name(rolename)
         deployed_nodes["roles"][rolename]=[]
-        v.each do |duid| 
+        v.each do |duid|
           deployment = self.deployments.select{ |d| d["uid"] == duid}.first
           deployed_nodes["roles"][rolename] += intersect_nodes_role(role, deployment)
         end
       end
 
     end
-    
+
     def intersect_nodes_job (job, deployment)
       nodes_deployed = deployment["result"].select{ |k,v| v["state"]=='OK'}.keys
       return job["assigned_nodes"] & nodes_deployed
@@ -215,9 +230,9 @@ module XP5K
       nodes_deployed = deployment["result"].select{ |k,v| v["state"]=='OK'}.keys
       return role.servers & nodes_deployed
     end
-    
+
     def update_cache
-      cache = { 
+      cache = {
         :jobs               => self.jobs.collect { |x| x.properties },
         :roles              => self.roles.map{ |x| { :name => x.name, :size => x.size, :servers => x.servers }},
         :deployed_nodes     => self.deployed_nodes,
@@ -236,7 +251,7 @@ module XP5K
 
       # Fill with nodes to deployed
       self.todeploy.each do |x|
-        x[:nodes] = x[:assigned_nodes] 
+        x[:nodes] = x[:assigned_nodes]
         x[:jobs].each do |jobname|
           x[:nodes] = x[:nodes] - self.deployed_nodes["jobs"][jobname]
         end
@@ -252,7 +267,7 @@ module XP5K
         x[:retries] <= 0
       }
 
-      if self.todeploy.empty? 
+      if self.todeploy.empty?
         return
       end
 
@@ -262,7 +277,7 @@ module XP5K
 
       # Launch deployments
       self.todeploy.each do |y|
-        x = y.clone  
+        x = y.clone
         site = x[:site]
         x.delete(:site)
         x.delete(:roles)
@@ -310,30 +325,30 @@ module XP5K
         return goal.to_f
       elsif goal.to_f == 1.0
         return goal.to_f/total
-      else 
+      else
         return goal.to_f/total
       end
     end
 
     def print_deploy_summary
       puts "Summary of the deployment"
-      puts "-" * 60 
+      puts "-" * 60
       printf "%+20s", "Name"
       printf "%+20s", "Deployed"
       printf "%+20s", "Undeployed"
       puts "\n"
-      puts "-" * 60 
+      puts "-" * 60
 
       self.deployed_nodes["jobs"].each do |jobname, deployed_nodes|
         puts "\n"
-        printf "%+20s",jobname 
+        printf "%+20s",jobname
         printf "%20d", deployed_nodes.length
         printf "%20d", job_with_name(jobname)["assigned_nodes"].length - deployed_nodes.length
         puts "\n"
       end
 
       self.deployed_nodes["roles"].each do |rolename, deployed_nodes|
-        printf "%+20s",rolename 
+        printf "%+20s",rolename
         printf "%20d", deployed_nodes.length
         printf "%20d", role_with_name(rolename).servers.length - deployed_nodes.length
         puts "\n"
