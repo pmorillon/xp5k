@@ -79,7 +79,7 @@ module XP5K
         datas = JSON.parse(File.read(".xp_cache"))
         uid = datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first["uid"]
         unless uid.nil?
-          job = @connection.root.sites[job_hash[:site].to_sym].jobs(:query => { :user => @connection.config.options[:username] })["#{uid}".to_sym]
+          job = @connection.root.sites[job_hash[:site].to_sym].jobs(:query => { :user => @connection.config.options[:username] || ENV['USER'] })["#{uid}".to_sym]
           if (not job.nil? or job["state"] == "running")
             j = job.reload
             self.jobs << j
