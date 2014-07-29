@@ -83,7 +83,7 @@ module XP5K
           if (not job.nil? or job["state"] == "running")
             j = job.reload
             self.jobs << j
-            create_roles(j, job_hash) unless job_hash[:roles].nil?
+            self.roles += Role.create_roles(j, job_hash) unless job_hash[:roles].nil?
           end
         end
         # reload last deployed nodes
@@ -120,7 +120,7 @@ module XP5K
           jobs_status[id] = job.reload["state"]
           case jobs_status[id]
           when "running"
-            create_roles(job, jobs2submit[id]) unless jobs2submit[id][:roles].nil?
+            self.roles += Role.create_roles(job, jobs2submit[id]) unless jobs2submit[id][:roles].nil?
             logger.info "Job #{job['uid']} is running"
           when /terminated|error/
             logger.info "Job #{job['uid']} is terminated"
@@ -137,29 +137,14 @@ module XP5K
       end
     end
 
-    def create_roles(job, job_definition)
-      count_needed_nodes = 0
-      job_definition[:roles].each { |role| count_needed_nodes += role.size }
-      if job['assigned_nodes'].length < count_needed_nodes
-        self.clean
-        raise "Job ##{job['uid']} require more nodes for required roles"
-      end
-      available_nodes = job['assigned_nodes'].sort
-      job_definition[:roles].each do |role|
-        role.servers = available_nodes[0..(role.size - 1)]
-        available_nodes -= role.servers
-        role.jobid = job['uid']
-        next if not self.roles.select { |x| x.name == role.name }.empty?
-        self.roles << role
-      end
-    end
-
     def job_with_name(name)
       self.jobs.select { |x| x["name"] == name }.first
     end
 
     def role_with_name(name)
-      self.roles.select { |x| x.name == name}.first
+      role = self.roles.select { |x| x.name == name}.first
+      logger.debug "Role #{name} not found." if role.nil?
+      return role
     end
 
     def get_deployed_nodes(job_or_role_name)
