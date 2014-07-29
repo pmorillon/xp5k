@@ -108,9 +108,13 @@ module XP5K
     end
 
     def wait_for_jobs
-      logger.info "Waiting for running state"
+      logger.info "Waiting for running state (Ctrl+c to stop waiting)"
       ready = false
       jobs_status = []
+      trap("SIGINT") do
+        logger.info "Stop waiting job."
+        exit
+      end
       until ready
         self.jobs.each.with_index do |job, id|
           jobs_status[id] = job.reload["state"]
@@ -128,6 +132,9 @@ module XP5K
         sleep 3
       end
       update_cache()
+      trap "SIGINT" do
+        raise
+      end
     end
 
     def create_roles(job, job_definition)
