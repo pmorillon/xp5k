@@ -114,7 +114,6 @@ For instance you can launch : ```cap submit deploy date```
 ### Xp5k Roles
 
 You can define specific roles in you job submission.
-This all
 
 ```ruby
 @myxp.define_job({
@@ -157,6 +156,24 @@ role :server do
   @myxp.role_with_name('clients').servers
 end
 ```
+
+You can also define nested roles (only 1 level) :
+
+```ruby
+@myxp.define_job({
+  :resources  => "nodes=4,walltime=1",
+  :site       => XP5K::Config[:site] || 'rennes',
+  :types      => ["deploy"],
+  :name       => "ceph_cluster",
+  :roles      => [
+    XP5K::Role.new({ :name => 'ceph_nodes', :size => 4 }),
+    XP5K::Role.new({ :name => 'ceph_monitor', :size => 1, :inner => 'ceph_nodes' }),
+  ],
+  :command    => "sleep 86400"
+})
+
+```
+
 ### Get the deployed nodes
 
 Some time nodes fail to be deployed. You can get the exact set
