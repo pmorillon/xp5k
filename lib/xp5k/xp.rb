@@ -98,10 +98,10 @@ module XP5K
         if job.nil?
           job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
           update_cache
-          logger.info "Job \"#{job['name']}\" submitted with id ##{job['uid']} at #{job2submit[:site]}"
+          logger.info "Job \"#{job['name']}\" submitted with id ##{job['uid']}@#{job2submit[:site]}"
           self.jobs << job
         else
-          logger.info "Job \"#{job["name"]}\" already submitted ##{job["uid"]}"
+          logger.info "Job \"#{job["name"]}\" already submitted ##{job["uid"]}@#{job2submit[:site]}"
         end
       end
       update_cache()
@@ -121,11 +121,11 @@ module XP5K
           case jobs_status[id]
           when "running"
             self.roles += Role.create_roles(job, jobs2submit[id]) unless jobs2submit[id][:roles].nil?
-            logger.info "Job #{job['uid']} is running"
+            logger.info "Job #{job['uid']}@#{jobs2submit[id][:site]} is running"
           when /terminated|error/
-            logger.info "Job #{job['uid']} is terminated"
+            logger.info "Job #{job['uid']}@#{jobs2submit[id][:site]} is terminated"
           else
-            logger.info "Job #{job['uid']} will be scheduled at #{Time.at(job['scheduled_at'].to_i).to_datetime}"
+            logger.info "Job #{job['uid']}@#{jobs2submit[id][:site]} will be scheduled at #{Time.at(job['scheduled_at'].to_i).to_datetime}"
           end
         end
         ready = true if jobs_status.uniq == ["running"]
@@ -157,8 +157,8 @@ module XP5K
     end
 
     def status
-      self.jobs.each do |job|
-        logger.info "Job \"#{job["name"]}\" ##{job["uid"]} status : #{job["state"]}"
+      self.jobs.each.with_index do |job, id|
+        logger.info "Job \"#{job["name"]}\" ##{job["uid"]}@#{jobs2submit[id][:site]} status : #{job["state"]}"
       end
     end
 
