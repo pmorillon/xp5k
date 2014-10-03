@@ -158,7 +158,9 @@ module XP5K
 
     def status
       self.jobs.each.with_index do |job, id|
-        logger.info "Job \"#{job["name"]}\" ##{job["uid"]}@#{jobs2submit[id][:site]} status : #{job["state"]}"
+        log = "Job \"#{job["name"]}\" ##{job["uid"]}@#{jobs2submit[id][:site]} status : #{job["state"]}"
+        log += " (#{Time.at(job['scheduled_at'].to_i).to_datetime})" if job['state'] == 'waiting'
+        logger.info log
       end
     end
 
