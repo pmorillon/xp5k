@@ -98,10 +98,10 @@ module XP5K
         if job.nil?
           job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
           update_cache
-          logger.info "Job \"#{job['name']}\" submitted with id ##{job['uid']}@#{job2submit[:site]}"
+          logger.info "Job \"#{job['name']}\" submitted with id #{job['uid']}@#{job2submit[:site]}"
           self.jobs << job
         else
-          logger.info "Job \"#{job["name"]}\" already submitted ##{job["uid"]}@#{job2submit[:site]}"
+          logger.info "Job \"#{job["name"]}\" already submitted #{job["uid"]}@#{job2submit[:site]}"
         end
       end
       update_cache()
@@ -158,7 +158,7 @@ module XP5K
 
     def status
       self.jobs.each.with_index do |job, id|
-        log = "Job \"#{job["name"]}\" ##{job["uid"]}@#{jobs2submit[id][:site]} status : #{job["state"]}"
+        log = "Job \"#{job["name"]}\" #{job["uid"]}@#{jobs2submit[id][:site]} status : #{job["state"]}"
         log += " (#{Time.at(job['scheduled_at'].to_i).to_datetime})" if job['state'] == 'waiting'
         logger.info log
       end
