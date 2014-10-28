@@ -30,6 +30,7 @@ https://github.com/capistrano/capistrano/wiki
 ## Sample
 
 Here is an example of a ```Capfile``` :
+
 ```ruby
 require 'xp5k'
 require 'capistrano'
@@ -157,6 +158,8 @@ role :server do
 end
 ```
 
+#### Nested roles
+
 You can also define nested roles (only 1 level) :
 
 ```ruby
@@ -172,6 +175,26 @@ You can also define nested roles (only 1 level) :
   :command    => "sleep 86400"
 })
 
+```
+
+#### Pattern
+
+You can select nodes matching a pattern (`String` or `Regexp`) :
+
+```Ruby
+roles = []
+scenario['clusters'].each do |cluster|
+  roles << XP5K::Role.new({
+    :name    => "ceph_nodes_#{cluster['name']}",
+    :size    => cluster['ceph_nodes_count'],
+    :pattern => cluster['name']
+  })
+  roles << XP5K::Role.new({
+    :name => "ceph_monitor_#{cluster['name']}",
+    :size => 1,
+    :inner => "ceph_nodes_#{cluster['name']}"
+  })
+end
 ```
 
 ### Get the deployed nodes

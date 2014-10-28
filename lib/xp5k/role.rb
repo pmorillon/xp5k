@@ -1,6 +1,6 @@
 class XP5K::Role
 
-  attr_accessor :name, :size, :desc, :servers, :jobid, :inner
+  attr_accessor :name, :size, :desc, :servers, :jobid, :inner, :pattern
 
   @@roles = []
 
@@ -20,7 +20,7 @@ class XP5K::Role
     end
 
     # Optional parameters
-    %w{ desc servers inner }.each do |param|
+    %w{ desc servers inner pattern }.each do |param|
       instance_variable_set("@#{param}", options[param.to_sym]) if options[param.to_sym]
     end
   end
@@ -47,6 +47,13 @@ class XP5K::Role
       a <=> b
     end
 
+    # Sort roles to manage roles with pattern first
+    defined_roles = defined_roles.sort do |x,y|
+      a = x.pattern ? 0 : 1
+      b = y.pattern ? 0 : 1
+      a <=> b
+    end
+
     # Attributes nodes to roles
     defined_roles.each do |role|
       next if self.exists?(role.name)
@@ -55,7 +62,12 @@ class XP5K::Role
         role.servers = available_nodes[role.inner][0..(role.size - 1)]
         available_nodes[role.inner] -= role.servers
       else
-        role.servers = available_nodes['job'][0..(role.size - 1)]
+        if not role.pattern
+          role.servers = available_nodes['job'][0..(role.size - 1)]
+        else
+          filtered_nodes = available_nodes['job'].select { |x| x.match role.pattern }
+          role.servers = filtered_nodes[0..(role.size - 1)]
+        end
         available_nodes['job'] -= role.servers
       end
       role.jobid = job['uid']
