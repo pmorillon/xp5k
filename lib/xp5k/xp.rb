@@ -66,6 +66,10 @@ module XP5K
         # set retries
         x[:retry] ||= false
         x[:retries] ||= x[:retry]?@retries:1
+        # Manage vlan on primary interface
+        if vlan_from_job = x[:vlan_from_job]
+          x[:vlan] = self.job_with_name(vlan_from_job)['resources_by_type']['vlans'].first.to_i
+        end
       end
       internal_deploy(@retries)
       print_deploy_summary
@@ -276,6 +280,7 @@ module XP5K
         site = x[:site]
         x.delete(:site)
         x.delete(:roles)
+        x.delete(:vlan_from_job)
         x.delete(:jobs)
         x.delete(:assigned_nodes)
         x.delete(:goal)
