@@ -15,6 +15,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = '>= 1.3.6'
 
+  s.add_dependency 'rest-client', '1.6.8' # SSL problems with newer version
   s.add_dependency 'restfully', '>1.0.0'
   s.add_dependency 'term-ansicolor', '>= 1.0.7'
   s.add_dependency 'json', '>= 1.5.1'
