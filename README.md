@@ -1,8 +1,38 @@
-## Installation
+#### Table of Contents
+
+1. [Getting started](#Getting started)
+  * [Gemfile](#Gemfile)
+  * [Restfully](#Restfully)
+  * [Ssh config](#Ssh config)
+2. [Samples](#Samples)
+  * [Hello date](#Hello date)
+  * [Xp5k Roles](#Xp5k Roles)
+  * [Nested roels](#Nested roles)
+  * [Patterns](#Patterns)
+  * [Get the deployed nodes](#Get the deployed nodes)
+  * [Automatic redeployment](#Automatic redeployment)
+  * [Vlan support](#Vlan support)
+  * [Non deploy jobs](#Non deploy jobs)
+
+# Getting started
+
+A typical project architecture using ```xp5k``` and ```capistrano``` looks like :
+
+```bash
+.
+├── Capfile   # deployment logic
+├── Gemfile   # gem dependencies description
+├── LICENSE   # License of utilization
+└── README.md # How to
+```
+
+## Gemfile
 
 Add this to your application Gemfile:
 
 ```ruby
+source "http://rubygems.org"
+
 gem "xp5k"
 gem "capistrano", "< 3.0.0"
 ```
@@ -13,8 +43,15 @@ and then run
 bundle install
 ```
 
-Configure restfully :
+Note : We encourage you to use [```xpm```](http://rvm.io/)
 
+
+##  Restfully
+
+```xp5k``` makes use of ```restfully``` to perform REST calls to the
+[Grid'5000API](https://api.grid5000.fr).
+
+Fill the ```~/.restfully/api.grid5000.fr.yml``` file with your credentials :
 ```bash
 $) cat ~/.restfully/api.grid5000.fr.yml
 base_uri: https://api.grid5000.fr/3.0
@@ -27,7 +64,14 @@ You are now ready to use ```xp5k``` and ```capistrano```.
 You will find the documentation of capistrano in the following link :
 https://github.com/capistrano/capistrano/wiki
 
-## Sample
+## Ssh config
+
+You can have a look at https://www.grid5000.fr/mediawiki/index.php/Xp5k
+
+# Samples
+
+
+## Hello date
 
 Here is an example of a ```Capfile``` :
 
@@ -110,9 +154,7 @@ cap submit # Submit jobs
 
 For instance you can launch : ```cap submit deploy date```
 
-## Extra features
-
-### Xp5k Roles
+## Xp5k Roles
 
 You can define specific roles in you job submission.
 
@@ -158,7 +200,7 @@ role :server do
 end
 ```
 
-#### Nested roles
+## Nested roles
 
 You can also define nested roles (only 1 level) :
 
@@ -177,7 +219,7 @@ You can also define nested roles (only 1 level) :
 
 ```
 
-#### Pattern
+## Patterns
 
 You can select nodes matching a pattern (`String` or `Regexp`) :
 
@@ -197,7 +239,7 @@ scenario['clusters'].each do |cluster|
 end
 ```
 
-### Get the deployed nodes
+## Get the deployed nodes
 
 Some time nodes fail to be deployed. You can get the exact set
 of nodes deployed in your xp5k job or role using the ```get_deployed_nodes```
@@ -209,7 +251,7 @@ role :clients  do
 end
 ```
 
-### Automatic redeployment
+## Automatic redeployment
 
 If some nodes fail to be deployed, ```xp5k``` will by default
 retry to deploy them up to 3 times.
@@ -227,3 +269,49 @@ You can control this behaviour passing special keys in the deployment hash.
                              # can be a percentage : "80%"
 })
 ```
+
+## Vlan support
+
+```ruby
+@myxp.define_job({
+  :resources => "{type='kavlan'}/vlan=1,nodes=2,walltime=1",
+  :site      => XP5K::Config['site'],
+  :queue     => XP5K::Config[:queue] || 'default',
+  :types     => ["deploy"],
+  :name      => "xp5k_vlan",
+  :command   => "sleep 186400"
+})
+```
+
+```ruby
+@myxp.define_deployment({
+  :site          => "rennes",
+  :environment   => "wheezy-x64-base",
+  :roles         => %w{ xp5k_vlan },
+  :key           => File.read("#{ssh_public}"),
+  :vlan_from_job => 'xp5k_vlan',
+  })
+```
+
+## Non deploy jobs
+
+Here we fill the ```types``` field with ```allow_classic_ssh```. 
+
+```ruby
+@myxp.define_job({
+  :resources  => ["nodes=1, walltime=1"],
+  :site       => "rennes",
+  :retry      => true,
+  :goal       => "100%",
+  :types      => ["allow_classic_ssh"],
+  :name       => "init" ,
+  :command    => "sleep 86400"
+  })
+
+role :myrole do
+   @myxp.job_with_name('init')['assigned_nodes']
+end
+```
+
+You should be able to issue :
+```cap invoke ROLES=myrole USER=<g5k-login> COMMAND=date``` to retrieve the date on all the nodes without deploying.
