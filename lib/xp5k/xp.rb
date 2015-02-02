@@ -174,7 +174,7 @@ module XP5K
         job.delete if (job['state'] =~ /running|waiting/)
         logger.info "Job ##{job["uid"]} deleted !"
       end
-      FileUtils.rm(".xp_cache")
+      FileUtils.rm(".xp_cache") if File.exists?(".xp_cache")
     end
 
     private
