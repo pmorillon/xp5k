@@ -1,18 +1,18 @@
 #### Table of Contents
 
-1. [Getting started](#Getting started)
-  * [Gemfile](#Gemfile)
-  * [Restfully](#Restfully)
-  * [Ssh config](#Ssh config)
-2. [Samples](#Samples)
-  * [Hello date](#Hello date)
-  * [Xp5k Roles](#Xp5k Roles)
-  * [Nested roels](#Nested roles)
-  * [Patterns](#Patterns)
-  * [Get the deployed nodes](#Get the deployed nodes)
-  * [Automatic redeployment](#Automatic redeployment)
-  * [Vlan support](#Vlan support)
-  * [Non deploy jobs](#Non deploy jobs)
+1. [Getting started](#getting-started)
+  * [Gemfile](#gemfile)
+  * [Restfully](#restfully)
+  * [Ssh config](#ssh-config)
+2. [Samples](#samples)
+  * [Hello date](#hello-date)
+  * [Xp5k Roles](#xp5k-roles)
+  * [Nested roels](#nested-roles)
+  * [Patterns](#patterns)
+  * [Get the deployed nodes](#get-the-deployed-nodes)
+  * [Automatic redeployment](#automatic-redeployment)
+  * [Vlan support](#vlan-support)
+  * [Non deploy jobs](#non-deploy-jobs)
 
 # Getting started
 
@@ -83,9 +83,9 @@ set :g5k_user, "msimonin"
 # gateway
 set :gateway, "#{g5k_user}@access.grid5000.fr"
 # These keys will used to access the gateway and nodes
-ssh_options[:keys]= [File.join(ENV["HOME"], ".ssh", "id_rsa"), File.join(ENV["HOME"], ".ssh", "id_rsa_insideg5k")]
+ssh_options[:keys]= [File.join(ENV["HOME"], ".ssh", "id_rsa")]
 # # This key will be installed on nodes
-set :ssh_public,  File.join(ENV["HOME"], ".ssh", "id_rsa_insideg5k.pub")
+set :ssh_public,  File.join(ENV["HOME"], ".ssh", "id_rsa.pub")
 
 XP5K::Config.load
 
@@ -223,7 +223,7 @@ You can also define nested roles (only 1 level) :
 
 You can select nodes matching a pattern (`String` or `Regexp`) :
 
-```Ruby
+```ruby
 roles = []
 scenario['clusters'].each do |cluster|
   roles << XP5K::Role.new({
@@ -295,7 +295,7 @@ You can control this behaviour passing special keys in the deployment hash.
 
 ## Non deploy jobs
 
-Here we fill the ```types``` field with ```allow_classic_ssh```. 
+Here we fill the ```types``` field with ```allow_classic_ssh```.
 
 ```ruby
 @myxp.define_job({
