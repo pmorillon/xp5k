@@ -191,11 +191,11 @@ role :server do
   @myxp.role_with_name('server').servers
 end
 
-role :server do
+role :frontend do
   @myxp.role_with_name('frontend').servers
 end
 
-role :server do
+role :clients do
   @myxp.role_with_name('clients').servers
 end
 ```
