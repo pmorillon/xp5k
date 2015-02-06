@@ -301,8 +301,6 @@ Here we fill the ```types``` field with ```allow_classic_ssh```.
 @myxp.define_job({
   :resources  => ["nodes=1, walltime=1"],
   :site       => "rennes",
-  :retry      => true,
-  :goal       => "100%",
   :types      => ["allow_classic_ssh"],
   :name       => "init" ,
   :command    => "sleep 86400"
