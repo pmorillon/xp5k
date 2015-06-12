@@ -25,6 +25,10 @@ class XP5K::Role
     end
   end
 
+  def add
+    @@roles << self
+  end
+
   def self.create_roles(job, job_definition)
     # Definition will return list of roles
     roles = []
