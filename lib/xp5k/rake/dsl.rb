@@ -59,7 +59,7 @@ module XP5K
         XP5K::Config[:user] ||= ENV["USER"]
         XP5K::Config[:gateway] ||= XP5K::Config[:user] + "@access.grid5000.fr"
 
-        commands = (args.last.class == String or args.last.class == Array) ? args.pop : []
+        commands = (args.last.class == String or args.last.class == Array) ? (args.last.class == String ? [args.pop] : args.pop ) : []
         options = args.last.class == Hash ? args.pop : {}
         options[:user] ||= 'root'
 
