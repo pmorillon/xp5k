@@ -46,7 +46,7 @@ module XP5K
       end
 
       #
-      def on(hosts, command, *args)
+      def on(hosts, *args, &block)
 
         logs = Hash.new { |h,k| h[k] = '' }
         errors = Hash.new { |h,k| h[k] = '' }
@@ -54,10 +54,32 @@ module XP5K
         current_server = ""
         all_connected = false
         failed_servers = []
+        hosts = [hosts] if hosts.class == String
+
+        XP5K::Config[:user] ||= ENV["USER"]
+        XP5K::Config[:gateway] ||= XP5K::Config[:user] + "@access.grid5000.fr"
+
+        commands = (args.last.class == String or args.last.class == Array) ? args.pop : []
+        options = args.last.class == Hash ? args.pop : {}
+        options[:user] ||= 'root'
+
+        if block_given?
+          case result = yield
+          when String
+            commands << result
+          when Array
+            commands.push(result).flatten!
+          else
+            raise "<on> block must return String or Array"
+          end
+        end
 
         until all_connected
           failed = false
-          gateway = Net::SSH::Gateway.new('frontend.rennes.grid5000.fr', 'g5kadmin')
+          gateway_options = {}
+          gateway_options[:config] == XP5K::Config[:ssh_config] ? true : XP5K::Config[:ssh_config]
+          gateway_user, gateway_host = XP5K::Config[:gateway].match(/^(?:([^;,:=]+)@|)(.*?)$/)[1,2]
+          gateway = Net::SSH::Gateway.new(gateway_host, gateway_user)
           workq = Queue.new
           hosts.each{ |host| workq << host }
           workers = (0...10).map do
@@ -66,7 +88,7 @@ module XP5K
                 while host = workq.pop(true)
                   begin
                     timeout(5) do
-                      ssh_session[host] = gateway.ssh(host, 'g5kadmin')
+                      ssh_session[host] = gateway.ssh(host, options[:user])
                       puts "Connected to #{host}..."
                     end
                   rescue Timeout::Error, Net::SSH::Disconnect, Exception => e
@@ -94,13 +116,16 @@ module XP5K
             begin
               while host = workq.pop(true)
                 begin
-                  ssh_session[host].exec!(command) do |channel, stream, data|
-                    logs[host] << data
-                    errors[host] << data if stream == :err
-                    puts "[#{stream}][#{host}] #{data}" if data.chomp != ""
+                  commands.each do |command|
+                    puts "[command][#{host}] #{command}"
+                    ssh_session[host].exec!(command) do |channel, stream, data|
+                      logs[host] << data
+                      errors[host] << data if stream == :err
+                      puts "[#{stream}][#{host}] #{data}" if data.chomp != ""
+                    end
                   end
                 rescue Exception => e
-                  puts "[#{server}] " + e.message
+                  puts "[#{host}] " + e.message
                 end
               end
             rescue ThreadError
