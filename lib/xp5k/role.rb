@@ -1,6 +1,6 @@
 class XP5K::Role
 
-  attr_accessor :name, :size, :desc, :servers, :jobid, :inner, :pattern
+  attr_accessor :name, :size, :desc, :servers, :jobid, :inner, :pattern, :proc
 
   @@roles = []
 
@@ -9,6 +9,7 @@ class XP5K::Role
     @inner   = false
     @servers = []
     @desc    = ""
+    @proc    = nil
 
     # Required parameters
     %w{ name size }.each do |param|
@@ -20,7 +21,7 @@ class XP5K::Role
     end
 
     # Optional parameters
-    %w{ desc servers inner pattern }.each do |param|
+    %w{ desc servers inner pattern proc }.each do |param|
       instance_variable_set("@#{param}", options[param.to_sym]) if options[param.to_sym]
     end
   end
@@ -28,6 +29,27 @@ class XP5K::Role
   def add
     @@roles << self
   end
+
+  def servers
+    if self.proc.class == Proc
+      self.callproc
+    end
+    @servers
+  end
+
+  def callproc
+    case result = self.proc.call
+    when String
+      hosts = [result]
+    when Array
+      hosts = result
+    else
+      raise "Role <#{args.first}> block must return String or Array"
+    end
+    self.size = hosts.length
+    self.servers = hosts
+  end
+
 
   def self.create_roles(job, job_definition)
     # Definition will return list of roles

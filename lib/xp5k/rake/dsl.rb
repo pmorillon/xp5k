@@ -11,16 +11,10 @@ module XP5K
 
       def role(*args, &block)
         hosts = []
+        procblock = nil
         if block_given?
           raise 'Arguments not allowed with block' unless args[1].nil?
-          case result = yield
-          when String
-            hosts = [result]
-          when Array
-            hosts = result
-          else
-            raise "Role <#{args.first}> block must return String or Array"
-          end
+          procblock = block
         else
           case args[1]
           when String
@@ -32,7 +26,7 @@ module XP5K
           end
         end
 
-        XP5K::Role.new(name: args.first, size: hosts.length, servers: hosts).add
+        XP5K::Role.new(name: args.first, size: hosts.length, servers: hosts, proc: procblock).add
 
       end
 
