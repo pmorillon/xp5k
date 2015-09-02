@@ -85,6 +85,10 @@ class XP5K::Role
     @@roles
   end
 
+  def self.listnames()
+    @@roles.map { |role| role.name }
+  end
+
   def self.findByName(name)
     roles = @@roles.select { |x| x.name == name }
     roles.empty? ? nil : roles.first
