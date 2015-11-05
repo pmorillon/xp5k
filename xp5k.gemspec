@@ -10,18 +10,18 @@ Gem::Specification.new do |s|
   s.email       = ['pascal.morillon@irisa.fr']
   s.license     = 'MIT'
   s.homepage    = 'https://github.com/pmorillon/xp5k'
-  s.summary     = %q{A small Grid'5000 helper to submit jobs and deploy environments via REST API}
+  s.summary     = %q{A small Grid'5000 helper}
   s.description = %q{A small Grid'5000 helper to submit jobs and deploy environments via REST API}
 
   s.required_rubygems_version = '>= 1.3.6'
 
-  s.add_dependency 'rest-client', '1.6.8' # SSL problems with newer version
-  s.add_dependency 'restfully', '>1.0.0'
-  s.add_dependency 'term-ansicolor', '>= 1.0.7'
-  s.add_dependency 'json', '>= 1.5.1'
-  s.add_dependency 'net-ssh-multi', '~> 1.2.1'
+  s.add_dependency 'rest-client', '~> 1.8' # SSL problems with newer version
+  s.add_dependency 'restfully', '~>1.1'
+  s.add_dependency 'term-ansicolor', '~> 1.3'
+  s.add_dependency 'json', '~> 1.8'
+  s.add_dependency 'net-ssh-multi', '~> 1.2'
 
-  s.add_development_dependency 'bundler', '>= 1.0.0'
+  s.add_development_dependency 'bundler', '~> 1.10'
 
   s.files         = `git ls-files`.split("\n")
   s.require_paths = ['lib']
