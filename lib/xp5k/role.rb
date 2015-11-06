@@ -1,6 +1,6 @@
 class XP5K::Role
 
-  attr_accessor :name, :size, :desc, :servers, :jobid, :inner, :pattern, :proc
+  attr_accessor :name, :size, :desc, :servers, :jobid, :inner, :pattern, :proc, :vlan
 
   @@roles = []
 
@@ -10,6 +10,7 @@ class XP5K::Role
     @servers = []
     @desc    = ""
     @proc    = nil
+    @vlan    = nil
 
     # Required parameters
     %w{ name size }.each do |param|
@@ -21,7 +22,7 @@ class XP5K::Role
     end
 
     # Optional parameters
-    %w{ desc servers inner pattern proc }.each do |param|
+    %w{ desc servers inner pattern proc vlan }.each do |param|
       instance_variable_set("@#{param}", options[param.to_sym]) if options[param.to_sym]
     end
   end
@@ -34,7 +35,13 @@ class XP5K::Role
     if self.proc.class == Proc
       self.callproc
     end
-    @servers
+    if @vlan
+      @servers.map do |node|
+        node.match('kavlan') ? node : node.gsub(/-(\d+)/, '-\1-kavlan-' + @vlan)
+      end
+    else
+      @servers
+    end
   end
 
   def callproc
