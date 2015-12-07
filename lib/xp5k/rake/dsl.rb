@@ -56,6 +56,10 @@ module XP5K
         commands = (args.last.class == String or args.last.class == Array) ? (args.last.class == String ? [args.pop] : args.pop ) : []
         options = args.last.class == Hash ? args.pop : {}
         options[:user] ||= 'root'
+        options[:environment] ||= {}
+        cmd_env = options[:environment].map do |key, value|
+          "#{key}=#{value}"
+        end
 
         if block_given?
           case result = yield
@@ -111,6 +115,7 @@ module XP5K
               while host = workq.pop(true)
                 begin
                   commands.each do |command|
+                    command.prepend(cmd_env.join(' ') + ' ') unless cmd_env.empty?
                     puts "[command][#{host}] #{command}"
                     ssh_session[host].exec!(command) do |channel, stream, data|
                       logs[host] << data
