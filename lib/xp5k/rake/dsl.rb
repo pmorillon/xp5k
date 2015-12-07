@@ -26,7 +26,13 @@ module XP5K
           end
         end
 
-        XP5K::Role.new(name: args.first, size: hosts.length, servers: hosts, proc: procblock).add
+        if not existing_role = XP5K::Role.findByName(args.first)
+          XP5K::Role.new(name: args.first, size: hosts.length, servers: hosts, proc: procblock).add
+        else
+          existing_role.size = hosts.length
+          existing_role.servers = hosts
+          existing_role.proc = procblock
+        end
 
       end
 
