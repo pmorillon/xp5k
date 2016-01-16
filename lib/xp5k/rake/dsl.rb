@@ -66,6 +66,9 @@ module XP5K
         cmd_env = options[:environment].map do |key, value|
           "#{key}=#{value}"
         end
+        
+        # net/ssh specific options
+        options[:ssh] ||= {}
 
         if block_given?
           case result = yield
@@ -92,7 +95,7 @@ module XP5K
                 while host = workq.pop(true)
                   begin
                     timeout(5) do
-                      ssh_session[host] = gateway.ssh(host, options[:user])
+                      ssh_session[host] = gateway.ssh(host, options[:user], options[:ssh])
                       puts "Connected to #{host}..."
                     end
                   rescue Timeout::Error, Net::SSH::Disconnect, Exception => e
