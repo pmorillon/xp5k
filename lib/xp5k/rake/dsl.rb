@@ -48,8 +48,8 @@ module XP5K
       #
       def on(hosts, *args, &block)
 
-        logs = Hash.new { |h,k| h[k] = '' }
-        errors = Hash.new { |h,k| h[k] = '' }
+        logs = Hash.new { |h,k| h[k] = [] }
+        errors = Hash.new { |h,k| h[k] = [] }
         ssh_session = {}
         current_server = ""
         all_connected = false
@@ -66,6 +66,9 @@ module XP5K
         cmd_env = options[:environment].map do |key, value|
           "#{key}=#{value}"
         end
+        
+        # net/ssh specific options
+        options[:ssh] ||= {}
 
         if block_given?
           case result = yield
@@ -92,7 +95,7 @@ module XP5K
                 while host = workq.pop(true)
                   begin
                     timeout(5) do
-                      ssh_session[host] = gateway.ssh(host, options[:user])
+                      ssh_session[host] = gateway.ssh(host, options[:user], options[:ssh])
                       puts "Connected to #{host}..."
                     end
                   rescue Timeout::Error, Net::SSH::Disconnect, Exception => e
@@ -121,13 +124,15 @@ module XP5K
               while host = workq.pop(true)
                 begin
                   commands.each do |command|
+                    stdout = ""
                     command.prepend(cmd_env.join(' ') + ' ') unless cmd_env.empty?
                     puts "[command][#{host}] #{command}"
                     ssh_session[host].exec!(command) do |channel, stream, data|
-                      logs[host] << data
-                      errors[host] << data if stream == :err
+                      stdout << data
+                      errors[host] << data.chomp if stream == :err
                       puts "[#{stream}][#{host}] #{data}" if data.chomp != ""
                     end
+                    logs[host] = stdout
                   end
                 rescue Exception => e
                   puts "[#{host}] " + e.message
@@ -158,6 +163,9 @@ module XP5K
         end
         gateway.shutdown!
 
+        # returns the output
+        # as a map : node => [out1, ..., outn]
+        return logs
       end
 
       def run(command)
