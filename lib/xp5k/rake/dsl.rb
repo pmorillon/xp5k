@@ -84,9 +84,9 @@ module XP5K
         until all_connected
           failed = false
           gateway_options = {}
-          gateway_options[:config] == XP5K::Config[:ssh_config] ? true : XP5K::Config[:ssh_config]
+          gateway_options[:config] = XP5K::Config[:ssh_config] || true
           gateway_user, gateway_host = XP5K::Config[:gateway].match(/^(?:([^;,:=]+)@|)(.*?)$/)[1,2]
-          gateway = Net::SSH::Gateway.new(gateway_host, gateway_user)
+          gateway = Net::SSH::Gateway.new(gateway_host, gateway_user, gateway_options)
           workq = Queue.new
           hosts.each{ |host| workq << host }
           workers = (0...10).map do
