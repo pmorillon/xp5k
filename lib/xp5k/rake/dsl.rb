@@ -2,6 +2,8 @@ require 'xp5k/role'
 require 'net/ssh/multi'
 require 'timeout'
 require 'thread'
+require 'xp5k/rake/timer'
+require 'xp5k/rake/task'
 
 module XP5K
   module Rake
