@@ -175,7 +175,7 @@ module XP5K
       end
 
       def get_width
-        result = `tput cols`
+        result = ENV["TERM"] ? `tput cols` : 80
         result.to_i
       end
 
