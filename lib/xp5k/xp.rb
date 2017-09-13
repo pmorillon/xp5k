@@ -78,20 +78,22 @@ module XP5K
 
     def define_job(job_hash)
       self.jobs2submit << job_hash
-
-      if File.exists?(".xp_cache")
-        datas = JSON.parse(File.read(".xp_cache"))
-        uid = datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first["uid"]
+      if File.exists?(".xp_cache") or job_hash[:jobid]
+        uid = job_hash[:jobid] || begin
+          datas = JSON.parse(File.read(".xp_cache"))
+          datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first["uid"]
+        end
         unless uid.nil?
           job = @connection.root.sites[job_hash[:site].to_sym].jobs(:query => { :user => @connection.config.options[:username] || ENV['USER'] })["#{uid}".to_sym]
           if (not job.nil? or job["state"] == "running")
             j = job.reload
             self.jobs << j
             self.roles += Role.create_roles(j, job_hash) unless job_hash[:roles].nil?
+            update_cache()
           end
         end
         # reload last deployed nodes
-        self.deployed_nodes = datas["deployed_nodes"]
+        self.deployed_nodes = datas["deployed_nodes"] if datas
       end
 
     end
