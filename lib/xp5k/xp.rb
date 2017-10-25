@@ -81,7 +81,9 @@ module XP5K
       if File.exists?(".xp_cache") or job_hash[:jobid]
         uid = job_hash[:jobid] || begin
           datas = JSON.parse(File.read(".xp_cache"))
-          datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first["uid"]
+          job = datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first
+          job ? job["uid"] : nil
+          #datas["jobs"].select { |x| x["name"] == job_hash[:name] }.first["uid"]
         end
         unless uid.nil?
           job = @connection.root.sites[job_hash[:site].to_sym].jobs(:query => { :user => @connection.config.options[:username] || ENV['USER'] })["#{uid}".to_sym]
@@ -89,12 +91,12 @@ module XP5K
             j = job.reload
             self.jobs << j
             self.roles += Role.create_roles(j, job_hash) unless job_hash[:roles].nil?
-            update_cache()
           end
         end
         # reload last deployed nodes
         self.deployed_nodes = datas["deployed_nodes"] if datas
       end
+      #update_cache()
 
     end
 
@@ -102,10 +104,15 @@ module XP5K
       self.jobs2submit.each do |job2submit|
         job = self.job_with_name(job2submit[:name])
         if job.nil?
-          job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
-          update_cache
-          logger.info "Job \"#{job['name']}\" submitted with id #{job['uid']}@#{job2submit[:site]}"
-          self.jobs << job
+          begin
+            job = @connection.root.sites[job2submit[:site].to_sym].jobs.submit(job2submit)
+            logger.info "Job \"#{job['name']}\" submitted with id #{job['uid']}@#{job2submit[:site]}"
+            self.jobs << job
+            update_cache
+          rescue Exception => e
+            puts "Error with job #{job2submit}"
+            puts e.message
+          end
         else
           logger.info "Job \"#{job["name"]}\" already submitted #{job["uid"]}@#{job2submit[:site]}"
         end
@@ -169,6 +176,7 @@ module XP5K
         log += " (until #{Time.at(job['started_at'].to_i + job['walltime'].to_i).to_datetime})" if job['state'] == 'running'
         logger.info log
       end
+      update_cache
     end
 
     def clean
