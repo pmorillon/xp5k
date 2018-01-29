@@ -10,9 +10,10 @@ module XP5K
     @@config[:loaded] = false
 
     # Load the experiment configuration file
-    def self.load
-      if File.exist?(File.expand_path(File.join(Dir.pwd, 'xp.conf')))
-        file_path = File.expand_path(File.join(Dir.pwd, 'xp.conf'))
+    def self.load(options = {})
+      path = options[:path] || 'xp.conf'
+      if File.exist?(File.expand_path(File.join(Dir.pwd, path)))
+        file_path = File.expand_path(File.join(Dir.pwd, path))
         self.instance_eval(IO.read(file_path),file_path, 1)
         @@config[:loaded] = true
       end
