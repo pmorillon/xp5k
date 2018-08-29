@@ -96,7 +96,7 @@ module XP5K
               begin
                 while host = workq.pop(true)
                   begin
-                    timeout(5) do
+                    Timeout.timeout(5) do
                       ssh_session[host] = gateway.ssh(host, options[:user], options[:ssh])
                       puts "Connected to #{host}..."
                     end
