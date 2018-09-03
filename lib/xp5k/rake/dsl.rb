@@ -68,7 +68,11 @@ module XP5K
         cmd_env = options[:environment].map do |key, value|
           "#{key}=#{value}"
         end
-        
+
+        options[:retry] ||= ( XP5K::Config[:onRetry] ||= false )
+        options[:retryCount] ||= ( XP5K::Config[:onRetryCount] ||= 3 )
+        options[:retryDelay] ||= ( XP5K::Config[:onRetryDelay] ||= 3 )
+
         # net/ssh specific options
         options[:ssh] ||= {}
 
@@ -83,6 +87,8 @@ module XP5K
           end
         end
 
+        retryCount = XP5K::Config[:onRetryCount]
+
         until all_connected
           failed = false
           gateway_options = {}
@@ -96,15 +102,23 @@ module XP5K
               begin
                 while host = workq.pop(true)
                   begin
-                    timeout(5) do
+                    Timeout.timeout(5) do
                       ssh_session[host] = gateway.ssh(host, options[:user], options[:ssh])
                       puts "Connected to #{host}..."
                     end
                   rescue Timeout::Error, Net::SSH::Disconnect, Exception => e
-                    puts "Removing #{host} (#{e.message})..."
-                    hosts.delete host
-                    failed_servers << host
-                    failed = true
+                    if not options[:retry]
+                      puts "Removing #{host} (#{e.message})..."
+                      hosts.delete host
+                      failed_servers << host
+                    elsif retryCount > 0
+                      puts "Error connecting to #{host}. Retry in #{options[:retryDelay]}s (#{retryCount} attempts)."
+                      retryCount -= 1
+                      sleep options[:retryDelay]
+                    else
+                      raise "Error connecting to #{host} after #{options[:retryCount]} attempts."
+                    end
+                      failed = true
                   end
                 end
 
