@@ -4,6 +4,7 @@ module XP5K
 
       @@initial_timer = nil
       @@current = nil
+      @@ignore_summary = false
 
       attr_accessor :start_time, :stop_time, :task_name, :parent, :childs
 
@@ -24,6 +25,10 @@ module XP5K
         @@current = self
       end
 
+      def self.ignore_summary(value)
+        @@ignore_summary = value
+      end
+
       def stop()
         @stop_time = Time.now
         self.parent.childs << self if self.parent
@@ -32,6 +37,7 @@ module XP5K
 
       def self.summary
         level = 1
+        return if @@ignore_summary
         @@initial_timer.stop unless @@initial_timer.stop_time
         puts "|   " * (level - 1) + "|-- #{@@initial_timer.task_name} : #{self.duration(@@initial_timer)}"
         timer = @@initial_timer
