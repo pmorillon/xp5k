@@ -15,14 +15,14 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = '>= 1.3.6'
 
-  s.add_dependency 'rack', '1.6.4'
-  s.add_dependency 'rest-client', '~> 1.8' # SSL problems with newer version
-  s.add_dependency 'restfully', '~>1.1'
+  s.add_dependency 'logger', '~> 1.4'
+  s.add_dependency 'rest-client', '~> 2.1'
+  #s.add_dependency 'restfully', '~>1.2.0'
   s.add_dependency 'term-ansicolor', '~> 1.3'
-  s.add_dependency 'json', '~> 1.8'
   s.add_dependency 'net-ssh-multi', '~> 1.2'
+  s.add_dependency 'rake', '~> 13'
 
-  s.add_development_dependency 'bundler', '~> 1.10'
+  s.add_development_dependency 'bundler', '~> 2.0'
 
   s.files         = `git ls-files`.split("\n")
   s.require_paths = ['lib']
